@@ -1,1 +1,4 @@
 .agtx/
+node_modules/
+dist/
+coverage/
