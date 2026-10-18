@@ -55,7 +55,8 @@ curl -i -X DELETE http://localhost:3000/tasks/<id>
 | 400 | `VALIDATION_ERROR` | 入力が不正 |
 | 400 | `INVALID_JSON` | JSON の構文が不正 |
 | 404 | `NOT_FOUND` | 対象タスクまたはルートが存在しない |
-| 413 | `VALIDATION_ERROR` | JSON 本文が 100 KB を超える |
+| 413 | `PAYLOAD_TOO_LARGE` | JSON 本文が 100 KB を超える |
+| 4xx | `BAD_REQUEST` | その他の不正なリクエスト（未対応の Content-Encoding など） |
 | 500 | `INTERNAL_ERROR` | 予期しない内部エラー |
 
 ## 構成と制約

@@ -61,10 +61,20 @@ describe('Tasks API', () => {
     ]) expect(response.body.error.code).toBe('NOT_FOUND');
   });
 
+  it('maps body parser client errors to 4xx JSON errors', async () => {
+    const tooLarge = await request(app).post('/tasks').send({ title: 'ok', description: 'x'.repeat(200_000) }).expect(413);
+    expect(tooLarge.body.error.code).toBe('PAYLOAD_TOO_LARGE');
+    const unsupported = await request(app).post('/tasks').set('Content-Type', 'application/json').set('Content-Encoding', 'bogus').send('{}').expect(415);
+    expect(unsupported.body.error.code).toBe('BAD_REQUEST');
+  });
+
   it('hides unexpected exception details', async () => {
     const repository = new InMemoryTaskRepository();
     vi.spyOn(repository, 'findAll').mockImplementation(() => { throw new Error('private detail'); });
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {});
     const response = await request(createApp({ repository })).get('/tasks').expect(500);
     expect(response.body).toEqual({ error: { code: 'INTERNAL_ERROR', message: 'Internal server error' } });
+    expect(log).toHaveBeenCalledWith(expect.objectContaining({ message: 'private detail' }));
+    log.mockRestore();
   });
 });
