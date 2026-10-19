@@ -9,5 +9,5 @@
     "outDir": "dist",
     "noUncheckedIndexedAccess": true
   },
-  "include": ["src/**/*.ts", "tests/**/*.ts", "vitest.config.ts"]
+  "include": ["src/**/*.ts", "tests/**/*.ts", "vitest.config.ts", "web/src/api/**/*.ts", "web/tests/**/*.ts"]
 }
