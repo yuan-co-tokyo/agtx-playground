@@ -128,3 +128,35 @@ describe('App', () => {
     expect(screen.queryByRole('list')).not.toBeInTheDocument();
   });
 });
+
+it('creates and edits priority and updates the displayed badge', async () => {
+  const { user, api } = await ready(fakeTaskApi());
+  await user.type(screen.getByRole('textbox', { name: /タイトル/ }), '優先タスク');
+  await user.click(screen.getByRole('radio', { name: '高' }));
+  await user.click(screen.getByRole('button', { name: 'タスクを追加' }));
+  expect(api.createTask).toHaveBeenCalledWith({ title: '優先タスク', description: '', status: 'todo', priority: 'high' });
+  const item = within(await screen.findByRole('listitem'));
+  expect(item.getByText('高')).toHaveTextContent('優先度: 高');
+  expect(screen.getByRole('radio', { name: '中' })).toBeChecked();
+  await user.click(item.getByRole('button', { name: '「優先タスク」を編集' }));
+  await user.click(item.getByRole('radio', { name: '低' }));
+  await user.click(item.getByRole('button', { name: '保存' }));
+  expect(api.updateTask).toHaveBeenLastCalledWith('new-0', { title: '優先タスク', description: '', status: 'todo', priority: 'low' });
+  expect(item.getByText('低')).toHaveTextContent('優先度: 低');
+});
+it('filters locally, shows counts and distinguishes no matches from no tasks', async () => {
+  const tasks = (['high', 'medium', 'low'] as const).map(priority => ({ ...sampleTask, id: priority, title: priority, priority }));
+  const { user, api } = await ready(fakeTaskApi(tasks));
+  const filter = screen.getByRole('combobox', { name: '優先度で絞り込み' });
+  await user.selectOptions(filter, 'high');
+  expect(screen.getAllByRole('listitem')).toHaveLength(1);
+  expect(screen.getByRole('heading', { name: 'high' })).toBeVisible();
+  expect(screen.getByText('1 件（全 3 件）')).toBeVisible();
+  await user.click(screen.getByRole('button', { name: '「high」を削除' }));
+  expect(await screen.findByText('該当するタスクはありません')).toBeVisible();
+  expect(screen.getByText('0 件（全 2 件）')).toBeVisible();
+  await user.selectOptions(filter, 'all');
+  expect(screen.getAllByRole('listitem')).toHaveLength(2);
+  expect(screen.getByText('2 件')).toBeVisible();
+  expect(api.getTasks).toHaveBeenCalledTimes(1);
+});

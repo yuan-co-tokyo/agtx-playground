@@ -3,7 +3,7 @@ import type { TaskApi } from '../api/client';
 import type { CreateTaskInput, Task, UpdateTaskInput } from '../api/types';
 
 export const sampleTask: Task = {
-  id: 'one', title: '仕様を確認', description: 'APIの仕様を読む', status: 'todo',
+  id: 'one', title: '仕様を確認', description: 'APIの仕様を読む', status: 'todo', priority: 'medium',
   createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z',
 };
 export function deferred<T>() {
@@ -23,7 +23,7 @@ export function fakeTaskApi(initial: Task[] = []) {
     }),
     getTasks: vi.fn(async () => [...tasks]),
     createTask: vi.fn(async (input: CreateTaskInput) => {
-      const task: Task = { ...sampleTask, description: '', status: 'todo', ...input, id: `new-${nextId++}` };
+      const task: Task = { ...sampleTask, description: '', status: 'todo', priority: 'medium', ...input, id: `new-${nextId++}` };
       tasks.push(task);
       return task;
     }),
