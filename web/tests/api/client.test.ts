@@ -93,6 +93,23 @@ describe('task API client', () => {
     }
   });
 
+  it('preserves timeouts and custom abort reasons from the caller signal', async () => {
+    const timeout = new DOMException('Timed out', 'TimeoutError');
+    expect(isAbortError(timeout)).toBe(true);
+    const { fetch, api } = setup(Response.json([]));
+    fetch.mockRejectedValue(timeout);
+    await expect(api.getTasks()).rejects.toBe(timeout);
+    const reason = new Error('cancelled');
+    const controller = new AbortController();
+    controller.abort(reason);
+    for (const status of [0, 200, 400]) {
+      const response = new Response('', { status: status || 200 });
+      if (status) vi.spyOn(response, status === 200 ? 'json' : 'text').mockRejectedValue(reason);
+      if (status) fetch.mockResolvedValue(response); else fetch.mockRejectedValue(reason);
+      await expect(api.getTasks({ signal: controller.signal })).rejects.toBe(reason);
+    }
+  });
+
   it.each(['not json', '{}', '[{}]', JSON.stringify([{ ...task, status: 'unknown' }])])('rejects malformed list responses %s', async body => {
     const { api } = setup(new Response(body));
     await expect(api.getTasks()).rejects.toBeInstanceOf(InvalidResponseError);

@@ -101,4 +101,4 @@ try {
 | `NetworkError` | 接続・CORS などの fetch 失敗。元の例外は `cause` |
 | `InvalidResponseError` | 成功レスポンスの JSON またはタスク形式が不正 |
 
-中断時の `AbortError` はそのまま伝播します。`isAbortError(error)` で判定できます。組み込みタイムアウトはなく、必要なら各メソッドに `{ signal: AbortSignal.timeout(5000) }` を渡してください。
+`signal` による中断（`AbortError`・`TimeoutError`・`abort(reason)` の理由）はラップせずそのまま伝播します。`AbortError` / `TimeoutError` は `isAbortError(error)` で判定できます。組み込みタイムアウトはなく、必要なら各メソッドに `{ signal: AbortSignal.timeout(5000) }` を渡してください。

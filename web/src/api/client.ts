@@ -48,17 +48,21 @@ export function createTaskApiClient(options: TaskApiClientOptions = {}): TaskApi
       signal: requestOptions?.signal,
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     };
+    // Errors caused by the caller's signal (abort, timeout or custom reason) propagate unchanged.
+    const rethrowAbort = (cause: unknown) => {
+      if (isAbortError(cause) || requestOptions?.signal?.aborted) throw cause;
+    };
     let response: Response;
     try {
       response = await (options.fetch ? options.fetch(`${baseUrl}${path}`, init) : globalThis.fetch(`${baseUrl}${path}`, init));
     } catch (cause) {
-      if (isAbortError(cause)) throw cause;
+      rethrowAbort(cause);
       throw new NetworkError('Unable to reach the task API', { cause });
     }
     if (!response.ok) {
       let errorBody: unknown;
       try { errorBody = JSON.parse(await response.text()); } catch (cause) {
-        if (isAbortError(cause)) throw cause;
+        rethrowAbort(cause);
       }
       if (isApiErrorBody(errorBody)) {
         throw new HttpError(response.status, errorBody.error.code, errorBody.error.message, errorBody.error.details);
@@ -67,7 +71,7 @@ export function createTaskApiClient(options: TaskApiClientOptions = {}): TaskApi
     }
     if (response.status === 204) return undefined;
     try { return await response.json(); } catch (cause) {
-      if (isAbortError(cause)) throw cause;
+      rethrowAbort(cause);
       throw new InvalidResponseError('Expected a JSON response', { cause });
     }
   }

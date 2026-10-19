@@ -26,5 +26,5 @@ export class InvalidResponseError extends ApiError {}
 
 export function isAbortError(error: unknown): boolean {
   return typeof error === 'object' && error !== null
-    && 'name' in error && error.name === 'AbortError';
+    && 'name' in error && (error.name === 'AbortError' || error.name === 'TimeoutError');
 }
