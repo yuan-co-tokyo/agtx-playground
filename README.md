@@ -66,3 +66,39 @@ curl -i -X DELETE http://localhost:3000/tasks/<id>
 データはプロセス内のメモリに保存されます。再起動で消失し、複数プロセス間では共有されません。認証は実装していません。
 
 `tests/` にはリポジトリ・サービスの単体テストと supertest による API 統合テストがあります。
+
+## フロントエンド用APIクライアント
+
+`web/src/api/` は React に依存しない fetch ベースの TypeScript クライアントです。タスクの必須フィールドとステータスを実行時に検証し、追加フィールドは許容します。
+
+```ts
+import { taskApi, HttpError, isAbortError } from './api/index.js';
+
+const controller = new AbortController();
+try {
+  const tasks = await taskApi.getTasks({ signal: controller.signal });
+  const created = await taskApi.createTask({ title: '新しいタスク' });
+  await taskApi.updateTask(created.id, { status: 'done' });
+  await taskApi.deleteTask(created.id);
+} catch (error) {
+  if (isAbortError(error)) return;
+  if (error instanceof HttpError && error.isValidationError) {
+    console.error(error.message, error.details);
+  } else {
+    throw error;
+  }
+}
+```
+
+`getTasks` / `getTask` / `createTask` / `updateTask` / `deleteTask` は個別にも import できます。`createTaskApiClient({ baseUrl, fetch })` で接続先や fetch を差し替えられます。作成・更新は title / description / status の定義済みの値だけを送ります。空の更新は通信せず `RangeError` で reject します。
+
+`web/.env.example` を参考に、Vite の `VITE_API_BASE_URL` を設定してください。未設定・空文字なら同一オリジンです。現状のサーバーは CORS に対応していないため、開発時は Vite 設定の `server.proxy` で `/tasks` を `http://localhost:3000` へ転送してください。Vite 設定と UI は別タスクで導入します。別オリジンの URL を直接指定する場合は、API 側の CORS 対応が必要です。
+
+| エラー | 用途 |
+| --- | --- |
+| `ApiError` | クライアントエラーの基底クラス |
+| `HttpError` | HTTP エラー。`status` / `code` / `details`、`isNotFound` / `isValidationError` を参照可能 |
+| `NetworkError` | 接続・CORS などの fetch 失敗。元の例外は `cause` |
+| `InvalidResponseError` | 成功レスポンスの JSON またはタスク形式が不正 |
+
+中断時の `AbortError` はそのまま伝播します。`isAbortError(error)` で判定できます。組み込みタイムアウトはなく、必要なら各メソッドに `{ signal: AbortSignal.timeout(5000) }` を渡してください。
