@@ -76,7 +76,7 @@ npm run dev
 npm run dev:web
 ```
 
-画面は `web/src/api/index.ts` の `taskApi` を使い、一覧・追加・編集・完了切り替え・削除に対応しています。`components/` が画面、`hooks/use-tasks.ts` が状態管理を担当します。型は `api/types.ts`、共通の `TaskApi` インターフェースは `api/client.ts` にあります。
+画面は `web/src/api/index.ts` の `taskApi` を使い、一覧・追加・編集・完了切り替え・削除・優先度の選択・表示・絞り込みに対応しています。`components/` が画面、`hooks/use-tasks.ts` が状態管理を担当します。型は `api/types.ts`、共通の `TaskApi` インターフェースは `api/client.ts` にあります。
 
 `api/error-message.ts` が通信・入力検証・未検出・サーバー・不正レスポンスのエラーを日本語に変換します。読み込み失敗時には再試行できます。API 停止時にプロキシが 500 を返す場合はサーバーエラーとして表示します。
 
@@ -86,9 +86,11 @@ Vite の開発・プレビューサーバーは `/tasks` を既定で `http://lo
 
 `npm run build` は API を `dist/`、画面を `dist/web/` に出力します。`npm run preview:web` でビルド済み画面を確認できます。本番での静的配信・API へのルーティングは別途設定が必要です。
 
+優先度は初期値から変更した場合のみ送信します。現在のサーバーは優先度の入力に未対応のため、「高」「低」の作成や優先度の変更にはバックエンド対応が必要です。
+
 ### API クライアント
 
-`web/src/api/` は React に依存しない fetch ベースの TypeScript クライアントです。タスクの必須フィールドとステータスを実行時に検証し、追加フィールドは許容します。
+`web/src/api/` は React に依存しない fetch ベースの TypeScript クライアントです。タスクの必須フィールドとステータス、優先度（`high` / `medium` / `low`）を実行時に検証し、追加フィールドは許容します。優先度が欠けていれば `medium` として扱います。
 
 ```ts
 import { taskApi, HttpError, isAbortError } from './api/index.js';
@@ -109,7 +111,7 @@ try {
 }
 ```
 
-`getTasks` / `getTask` / `createTask` / `updateTask` / `deleteTask` は個別にも import できます。`createTaskApiClient({ baseUrl, fetch })` で接続先や fetch を差し替えられます。作成・更新は title / description / status の定義済みの値だけを送ります。空の更新は通信せず `RangeError` で reject します。
+`getTasks` / `getTask` / `createTask` / `updateTask` / `deleteTask` は個別にも import できます。`createTaskApiClient({ baseUrl, fetch })` で接続先や fetch を差し替えられます。作成・更新は title / description / status / priority の定義済みの値だけを送ります。空の更新は通信せず `RangeError` で reject します。
 
 `web/.env.example` を参考に、Vite の `VITE_API_BASE_URL` を設定してください。未設定・空文字なら同一オリジンです。サーバーは CORS に対応していないため、開発時は設定済みの Vite プロキシを利用します。別オリジンの URL を直接指定する場合は、API 側の CORS 対応が必要です。
 

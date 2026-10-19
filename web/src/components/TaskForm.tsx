@@ -1,5 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react';
-import type { CreateTaskInput, TaskStatus } from '../api/types';
+import type { CreateTaskInput, TaskPriority, TaskStatus } from '../api/types';
+import { DEFAULT_TASK_PRIORITY, TASK_PRIORITIES } from '../api/types';
+import { priorityLabels } from './PriorityBadge';
 import { statusLabels } from './StatusBadge';
 
 interface Props {
@@ -15,6 +17,8 @@ export function TaskForm({ initialValues, submitLabel, onSubmit, onCancel, submi
   const [title, setTitle] = useState(initialValues?.title ?? '');
   const [description, setDescription] = useState(initialValues?.description ?? '');
   const [status, setStatus] = useState<TaskStatus>(initialValues?.status ?? 'todo');
+  const initialPriority = initialValues?.priority ?? DEFAULT_TASK_PRIORITY;
+  const [priority, setPriority] = useState<TaskPriority>(initialPriority);
   const [error, setError] = useState('');
   const submitted = useRef(false);
   useEffect(() => { if (initialValues) titleRef.current?.focus(); }, [initialValues]);
@@ -33,8 +37,9 @@ export function TaskForm({ initialValues, submitLabel, onSubmit, onCancel, submi
     }
     setError('');
     submitted.current = true;
-    if (await onSubmit({ title: title.trim(), description, status })) {
-      if (!initialValues) { setTitle(''); setDescription(''); setStatus('todo'); }
+    // Omit unchanged priority to remain compatible with servers without priority support.
+    if (await onSubmit({ title: title.trim(), description, status, ...(priority !== initialPriority ? { priority } : {}) })) {
+      if (!initialValues) { setTitle(''); setDescription(''); setStatus('todo'); setPriority(DEFAULT_TASK_PRIORITY); }
     }
   }} aria-busy={submitting}>
     <fieldset disabled={submitting}>
@@ -50,6 +55,13 @@ export function TaskForm({ initialValues, submitLabel, onSubmit, onCancel, submi
       <select id={`${id}-status`} value={status} onChange={event => setStatus(event.target.value as TaskStatus)}>
         {Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
       </select>
+      <fieldset className="priority-field">
+        <legend>優先度</legend>
+        {TASK_PRIORITIES.map(value => <label className="priority-option" key={value}>
+          <input type="radio" name={`${id}-priority`} value={value} checked={priority === value}
+            onChange={() => setPriority(value)} />{priorityLabels[value]}
+        </label>)}
+      </fieldset>
       <div className="form-actions">
         <button className="primary" type="submit" disabled={submitting}>{submitLabel}</button>
         {onCancel && <button type="button" onClick={onCancel}>キャンセル</button>}

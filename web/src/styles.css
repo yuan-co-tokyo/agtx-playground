@@ -21,8 +21,8 @@ h2 { font-size: 1.15rem; margin: 0 0 24px; }
 main { display: grid; gap: 28px; align-items: start; }
 .create-panel { padding: 24px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; }
 fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
-label:not(.completion) { display: block; font-size: .9rem; font-weight: 600; margin-bottom: 8px; }
-input:not([type=checkbox]), textarea, select { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 7px; color: inherit; background: var(--surface); margin-bottom: 20px; }
+label:not(.completion):not(.priority-option) { display: block; font-size: .9rem; font-weight: 600; margin-bottom: 8px; }
+input:not([type=checkbox]):not([type=radio]), textarea, select { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 7px; color: inherit; background: var(--surface); margin-bottom: 20px; }
 textarea { resize: vertical; }
 .required { color: var(--muted); font-size: .75rem; margin-left: 6px; }
 .form-actions, .task-actions { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -55,3 +55,13 @@ input[type=checkbox] { width: 20px; height: 20px; min-height: 20px; accent-color
 @media (prefers-color-scheme: dark) {
   :root { color: #e7eef1; background: #152027; --surface: #1e2d35; --border: #52646f; --muted: #b0c2cc; --accent: #227f68; --error: #ffb4ac; --error-bg: #3e282b; }
 }
+
+.priority-field { margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 12px; }
+.priority-field legend { font-size: .9rem; font-weight: 600; margin-bottom: 8px; }
+.priority-option { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; min-width: 44px; cursor: pointer; }
+input[type=radio] { width: 20px; height: 20px; min-height: 20px; accent-color: var(--accent); }
+.priority-high { background: #ffe0df; color: #8b2525; }
+.priority-medium { background: #fff0c7; color: #715000; }
+.priority-low { background: #deecff; color: #254c80; }
+.list-toolbar { display: flex; align-items: baseline; flex-wrap: wrap; gap: 12px; }
+.list-toolbar select { width: auto; }

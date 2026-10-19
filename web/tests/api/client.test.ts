@@ -12,7 +12,7 @@ describe('task API client', () => {
   it('lists tasks, trims base URL and forwards a signal', async () => {
     const { fetch, api } = setup(Response.json([task]));
     const signal = new AbortController().signal;
-    expect(await api.getTasks({ signal })).toEqual([task]);
+    expect(await api.getTasks({ signal })).toEqual([{ ...task, priority: 'medium' }]);
     expect(fetch).toHaveBeenCalledWith('http://localhost:3000/tasks', expect.objectContaining({ method: 'GET', signal, headers: { Accept: 'application/json' } }));
   });
 
@@ -28,9 +28,9 @@ describe('task API client', () => {
       const response = method === 'DELETE' ? new Response(null, { status: 204 }) : Response.json(task);
       const json = vi.spyOn(response, 'json');
       const { fetch, api } = setup(response);
-      if (method === 'GET') expect(await api.getTask('a/b')).toEqual(task);
+      if (method === 'GET') expect(await api.getTask('a/b')).toEqual({ ...task, priority: 'medium' });
       if (method === 'PATCH') {
-        expect(await api.updateTask('a/b', { status: 'done' })).toEqual(task);
+        expect(await api.updateTask('a/b', { status: 'done' })).toEqual({ ...task, priority: 'medium' });
         expect(fetch.mock.calls[0]?.[1]?.body).toBe('{"status":"done"}');
       }
       if (method === 'DELETE') {
@@ -43,7 +43,7 @@ describe('task API client', () => {
 
   it('creates a task with only defined input fields', async () => {
     const { fetch, api } = setup(Response.json(task, { status: 201 }));
-    expect(await api.createTask({ ...task, status: undefined, description: undefined })).toEqual(task);
+    expect(await api.createTask({ ...task, status: undefined, description: undefined })).toEqual({ ...task, priority: 'medium' });
     expect(fetch).toHaveBeenCalledWith('http://localhost:3000/tasks', expect.objectContaining({
       method: 'POST', body: '{"title":"Test"}', headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
     }));
@@ -128,4 +128,25 @@ describe('task API client', () => {
     await expect(api.updateTask('id', { title: undefined })).rejects.toBeInstanceOf(RangeError);
     expect(fetch).not.toHaveBeenCalled();
   });
+});
+
+it.each(['high', 'medium', 'low'] as const)('preserves priority %s and additive fields', async priority => {
+  const value = { ...task, priority, extra: true };
+  expect(await setup(Response.json(value)).api.getTask('id')).toEqual(value);
+  expect(await setup(Response.json([value])).api.getTasks()).toEqual([value]);
+});
+it.each(['urgent', null, 1])('rejects invalid priority %s', async priority => {
+  await expect(setup(Response.json({ ...task, priority })).api.getTask('id')).rejects.toBeInstanceOf(InvalidResponseError);
+  await expect(setup(Response.json([{ ...task, priority }])).api.getTasks()).rejects.toBeInstanceOf(InvalidResponseError);
+});
+it('sends explicit priorities and rejects undefined-only updates', async () => {
+  const { api, fetch } = setup(Response.json(task));
+  await api.createTask({ title: 'Test', priority: 'high' });
+  expect(JSON.parse(String(fetch.mock.calls[0]?.[1]?.body))).toEqual({ title: 'Test', priority: 'high' });
+  fetch.mockResolvedValue(Response.json(task));
+  await api.updateTask('id', { priority: 'low' });
+  expect(fetch.mock.calls[1]?.[1]?.body).toBe('{"priority":"low"}');
+  fetch.mockClear();
+  await expect(api.updateTask('id', { priority: undefined })).rejects.toBeInstanceOf(RangeError);
+  expect(fetch).not.toHaveBeenCalled();
 });
