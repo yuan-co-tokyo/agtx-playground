@@ -22,7 +22,7 @@ npm start
 
 | メソッド | パス | 成功時 |
 | --- | --- | --- |
-| GET | `/tasks` | 200: 作成順のタスク配列 |
+| GET | `/tasks` | 200: 作成順のタスク配列（`?priority=high` などで絞り込み可） |
 | GET | `/tasks/:id` | 200: タスク |
 | POST | `/tasks` | 201: 作成したタスク |
 | PATCH | `/tasks/:id` | 200: 更新したタスク |
@@ -32,6 +32,7 @@ POST / PATCH は `Content-Type: application/json` を指定します。
 
 ```sh
 curl -i http://localhost:3000/tasks
+curl -i 'http://localhost:3000/tasks?priority=high'
 curl -i -X POST http://localhost:3000/tasks \
   -H 'Content-Type: application/json' \
   -d '{"title":"APIを試す","description":"動作確認","status":"todo"}'
@@ -44,8 +45,10 @@ curl -i -X DELETE http://localhost:3000/tasks/<id>
 - `title`: POST で必須。前後の空白を除去した後 1〜200 文字。
 - `description`: 最大 2000 文字。POST で省略した場合は空文字列。
 - `status`: `todo` / `in_progress` / `done`。POST で省略した場合は `todo`。
+- `priority`: `high` / `medium` / `low`。POST で省略した場合は `medium`。優先度を持たない既存データも `medium` として返します。
 - PATCH は上記のうち最低 1 フィールドが必要です。省略したフィールドは保持します。
 - 未定義のフィールド（`id` や日時など）を入力すると 400 になります。
+- `GET /tasks` の `priority` クエリに上記以外の値（空文字・複数指定を含む）を渡すと 400 `VALIDATION_ERROR` になります。その他のクエリパラメータは無視します。
 - レスポンスには UUID の `id` と ISO 8601 形式の `createdAt` / `updatedAt` を含みます。更新時は `createdAt` を保持します。
 
 エラーは `{ "error": { "code": "...", "message": "...", "details": [] } }` 形式です。`details` は入力検証の詳細がある場合のみ含みます。

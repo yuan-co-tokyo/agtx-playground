@@ -1,25 +1,25 @@
-import type { Task } from '../types/task.js';
+import type { StoredTask } from '../types/task.js';
 import type { TaskRepository } from './task.repository.js';
 
 export class InMemoryTaskRepository implements TaskRepository {
-  private readonly tasks = new Map<string, Task>();
+  private readonly tasks = new Map<string, StoredTask>();
 
-  findAll(): Task[] {
+  findAll(): StoredTask[] {
     return [...this.tasks.values()].map((task) => ({ ...task }));
   }
 
-  findById(id: string): Task | undefined {
+  findById(id: string): StoredTask | undefined {
     const task = this.tasks.get(id);
     return task ? { ...task } : undefined;
   }
 
-  create(task: Task): Task {
+  create(task: StoredTask): StoredTask {
     if (this.tasks.has(task.id)) throw new Error('Duplicate task ID');
     this.tasks.set(task.id, { ...task });
     return { ...task };
   }
 
-  update(task: Task): Task | undefined {
+  update(task: StoredTask): StoredTask | undefined {
     if (!this.tasks.has(task.id)) return undefined;
     this.tasks.set(task.id, { ...task });
     return { ...task };
