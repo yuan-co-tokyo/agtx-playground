@@ -1,10 +1,10 @@
 import { Router } from 'express';
-import { createTaskSchema, updateTaskSchema } from '../schemas/task.schema.js';
+import { createTaskSchema, listTasksQuerySchema, updateTaskSchema } from '../schemas/task.schema.js';
 import type { TaskService } from '../services/task.service.js';
 
 export function createTaskRouter(service: TaskService): Router {
   const router = Router();
-  router.get('/', (_req, res) => { res.json(service.findAll()); });
+  router.get('/', (req, res) => { res.json(service.findAll(listTasksQuerySchema.parse(req.query))); });
   router.get('/:id', (req, res) => { res.json(service.findById(req.params.id)); });
   router.post('/', (req, res) => {
     const task = service.create(createTaskSchema.parse(req.body));
