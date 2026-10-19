@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { TaskApi } from '../api/client';
 import type { CreateTaskInput, Task, UpdateTaskInput } from '../api/types';
-
 import { toErrorMessage } from '../api/error-message';
 
 export function useTasks(api: TaskApi) {
