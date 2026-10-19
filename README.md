@@ -66,3 +66,20 @@ curl -i -X DELETE http://localhost:3000/tasks/<id>
 データはプロセス内のメモリに保存されます。再起動で消失し、複数プロセス間では共有されません。認証は実装していません。
 
 `tests/` にはリポジトリ・サービスの単体テストと supertest による API 統合テストがあります。
+
+## フロントエンド
+
+React + TypeScript の画面は `web/` にあります。開発時は別々のターミナルで起動します。
+
+```sh
+npm run dev
+npm run dev:web
+```
+
+Vite の開発サーバーは `/tasks` を `http://localhost:3000` に転送します。API のポートを変更した場合は `web/vite.config.ts` の転送先も変更してください。
+
+画面は一覧・追加・編集・完了切り替え・削除、読み込み表示、エラー表示と再試行に対応しています。`web/src/components/` に画面、`hooks/use-tasks.ts` に状態管理、`api/task-api.ts` に UI が利用する `TaskApi` インターフェースを配置しています。
+
+**API クライアントは別タスクで実装するため、現時点のエントリは仮実装です。** 起動すると「APIクライアントが未接続です」と表示されます。統合時に `web/src/main.tsx` の `placeholder-task-api` の import を、`TaskApi` を満たす実クライアントの `taskApi` に差し替えてください。各メソッドは表示可能な `message` を持つ `Error` で失敗を通知します。画面テストはメモリ上の fake を使うためクライアントに依存しません。
+
+`npm run typecheck` で API と画面の型を確認し、`npm test` で両方のテストを実行します。`npm run build` は API を `dist/`、画面を `dist/web/` に出力します。`npm run preview:web` はビルド済み画面の確認用です。本番での静的配信・API へのルーティングは別途設定が必要です。
