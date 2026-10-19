@@ -28,9 +28,9 @@ TUI が起動した既存の Orchestrator（tmux window `orchestrator` で動く
 ### 仕組み
 
 1. コンソールで指示を入力する（例：「レビュー待ちのタスクを全部 Done にして」）。
-2. バックエンドが `tmux send-keys -t agtx-playground:orchestrator -l "<指示>"` を実行し、続けて `Enter` を送る。
+2. バックエンドが `tmux -L agtx send-keys -t agtx-playground:orchestrator -l "<指示>"` を実行し、続けて `Enter` を送る。
 3. Orchestrator は自分の agtx MCP（`agtx-orchestrator`）でタスクを操作する。
-4. バックエンドは `tmux capture-pane -p -e` で画面を約 1 秒ごとに取り、WebSocket でブラウザに配信する（agtx serve の `/ws` と同じやり方）。
+4. バックエンドは `tmux -L agtx capture-pane -p -e` で画面を約 1 秒ごとに取り、WebSocket でブラウザに配信する（agtx serve の `/ws` と同じやり方）。
 5. タスクの一覧・詳細・ペインは agtx serve の HTTP/WS を中継して表示する。
 
 ### メリット・デメリット
@@ -44,6 +44,7 @@ TUI が起動した既存の Orchestrator（tmux window `orchestrator` で動く
 | デメリット | 返答がターミナル画面のテキストで、どこからどこまでが「今の返答」かを機械的に切り出せない |
 | デメリット | 入力欄の補完ピッカーや許可プロンプトと衝突しうる。agtx が通知を流し込むタイミングとも重なりうる |
 | デメリット | window 名 `orchestrator` と tmux の内部に依存し、agtx の公式 API ではない |
+| デメリット | agtx の Orchestrator 自体が "Experimental"（`agtx --experimental`）で、挙動が変わりやすい |
 | デメリット | 「処理中」「完了」「どのツールを呼んだか」を UI で正確に示せない |
 
 ## B案：コンソールに独自の Orchestrator を持たせる
@@ -184,7 +185,7 @@ A案では BFF が tmux の orchestrator window に文字を送る。B案では 
 | `/orchestrator` | A案：tmux の `orchestrator` window、B案：Agent SDK + agtx MCP | 自然言語の指示と返答 |
 
 - 同じオリジンから中継するので、agtx serve に CORS ヘッダがない問題を回避できる。
-- HTTP 側のプロジェクト ID は UUID、MCP 側は `agtx-playground` なので、BFF で対応表を持つ。
+- プロジェクト ID は HTTP・MCP とも `list_projects` が返す UUID（MCP の global mode でも同じ）。`get_task` の `project_id` フィールドだけがプロジェクト名なので、ID として使わない。
 
 ### リモート接続（スマホ）
 
@@ -209,5 +210,6 @@ A案では BFF が tmux の orchestrator window に文字を送る。B案では 
 - [ ] B案での Claude の認証方式（API キーか、サブスクリプションか）と課金の上限
 - [ ] リモートの範囲：tailnet 限定でよいか
 - [ ] agtx TUI を tmux に常駐させる運用でよいか
-- [ ] 未検証：MCP の global mode の起動方法、`wait_for_board_change` の返却形式、`POST /action` のレスポンス
-- [ ] github.com/fynnfluegge/agtx に API の安定性方針があるか
+- [x] 未検証：MCP の global mode の起動方法、`wait_for_board_change` の返却形式、`POST /action` のレスポンス → 確認済み（`agtx-research.md` の「検証結果」）
+- [x] github.com/fynnfluegge/agtx に API の安定性方針があるか → 明文化されていない。リリース頻度が高く、Orchestrator は Experimental
+- [ ] BFF は10分以内の間隔でボードを読み続ける（`phase_status` を更新させるため）。`/events` の `wait_for_board_change` ループで満たす想定

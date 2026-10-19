@@ -121,3 +121,8 @@ try {
 | `InvalidResponseError` | 成功レスポンスの JSON またはタスク形式が不正 |
 
 `signal` による中断（`AbortError`・`TimeoutError`・`abort(reason)` の理由）はラップせずそのまま伝播します。`AbortError` / `TimeoutError` は `isAbortError(error)` で判定できます。組み込みタイムアウトはなく、必要なら各メソッドに `{ signal: AbortSignal.timeout(5000) }` を渡してください。
+
+## agtx 連携の調査資料
+
+- [agtx 外部連携仕様の調査](docs/agtx-research.md): タスク操作・Orchestrator・状態取得・イベント・拡張性の5項目と検証結果
+- [Orchestrator 連携 A案・B案の比較](docs/agtx-orchestrator-options.md): Webコンソール構想の UI 案と進め方

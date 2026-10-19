@@ -2,7 +2,7 @@
 
 対象: agtx 1.0.6（`/Users/takahiro/.local/bin/agtx`, Rust 製 Mach-O, upstream: github.com/fynnfluegge/agtx）
 調査方法: バイナリ埋め込み文字列（ヘルプ・MCPツール定義・内蔵Web UIのJS）、SQLite スキーマ（read-only）、設定ファイル、tmux 構成、`.claude` 設定の確認。
-`agtx serve` の起動や API の実呼び出しは行っていない（read-only 方針のため）。
+当初は read-only で調べ、後から副作用のない範囲で実際に呼び出して確かめた（「追加調査」「検証結果」の節）。
 
 > **最重要の発見:** agtx には既に **`agtx serve`（HTTP API + WebSocket + 内蔵PWA）** がある。
 > TUI で `W` キーを押しても起動する。Webコンソールを自作する場合も、この API をそのまま土台にできる可能性が高い。
@@ -120,7 +120,7 @@
 - agtx から Orchestrator への通知は、**Orchestrator がアイドルのとき TUI がペインへ流し込む**（例: `[agtx] Task "x" (abc12345) completed phase: planning`、複数ある場合は `|` 区切り）。
 - **外部から Orchestrator に指示を送る公式APIはない。** `send_to_task` と `/input` はタスクIDが前提で、Orchestrator はタスクではない。
 - 選択肢:
-  - (a) `tmux send-keys -t agtx-playground:orchestrator "<msg>" Enter`。手軽だが非公式で、window 名に依存する。
+  - (a) `tmux -L agtx send-keys -t agtx-playground:orchestrator "<msg>" Enter`。手軽だが非公式で、window 名に依存する。
   - (b) **Webコンソール自体を orchestrator にする**: `wait_for_board_change` で監視し、`move_task` で進める。Orchestrator が実際にやっていることは MCP 経由で全部できるので、こちらの方が堅い。
   - (c) 自然言語で指示したい場合は、コンソールのバックエンドで Claude（Agent SDK など）を動かし、agtx MCP を持たせて独自の orchestrator にする。
 
@@ -133,6 +133,7 @@
 ### 4. イベント取得
 - **MCP `wait_for_board_change`**: ロングポーリング（デフォルト300秒、最大900秒）。変更点だけを返し、タイムアウトしてもエラーではない。コンソールのバックエンドからプッシュ通知（SSE/WS）に変換する元として最適。
 - 承認待ち: Claude の `PermissionRequest` / `Notification(permission_prompt)` フックで `blocked` になり、`blocked_reason` が付く。内蔵UIの `needsAttention()` = `escalation_note || phase_status in (blocked, ready)`。
+- **注意:** `phase_status` は誰かがボードを読んでいる間だけ TUI が更新する（`board_watch`、10分間有効。検証結果を参照）。
 - フェーズ完了: `phase_status == "ready"`（Orchestrator に push される「completed phase」通知に対応）。
 - 遷移の結果: `get_transition_status` / `GET /requests/{rid}`（`processed_at`, `error`）。
 - HTTP 側にはボード全体のイベントストリームがない（WS はペイン専用）。HTTP だけで作るなら `/tasks` のポーリング（内蔵UIは約2秒間隔）になる。
@@ -171,7 +172,7 @@
 | 確認項目 | 結果 |
 |------|------|
 | `GET /api/health` | `{"version":"1.0.6","mode":"project","project_count":1,"tui_connected":true}`。バージョン検知に使える |
-| `GET /api/projects` | `[{id, name, path, last_opened, tui_connected}]`。**`id` は UUID**（`389c107c-…`）。MCP の `get_task` が返す `project_id` は `"agtx-playground"` なので、ID 体系が違う点に注意 |
+| `GET /api/projects` | `[{id, name, path, last_opened, tui_connected}]`。**`id` は UUID**（`389c107c-…`）。MCP の `list_projects` も同じ UUID を返す。ただし MCP の `get_task` の `project_id` フィールドはプロジェクト名（`"agtx-playground"`）で、ID としては使えない（検証結果を参照） |
 | `GET .../tasks` | 配列。一覧の要素は概要フィールドのみ（description, agent_state, blocked_reason などは含まない） |
 | `GET .../tasks/{tid}` | MCP の `get_task` とほぼ同じフィールド（agent_state, blocked_reason, phase_status, allowed_actions, conflicted, conflicting_files, …） |
 | `GET .../pane?lines=N` | `{session_name, lines, content}` |
@@ -182,7 +183,7 @@
 agtx 自体にこの機能はないので、Webコンソール側で用意する必要がある。候補は2つ。
 
 **案A: 既存の Orchestrator ペインに流し込む（手軽）**
-- バックエンドから `tmux send-keys -t agtx-playground:orchestrator -l "<msg>"` → `Enter`。返答は `tmux capture-pane -p -e -t agtx-playground:orchestrator` で読み、WS で配信する。agtx の `/input` と同じやり方で、agtx の更新にも比較的影響されにくい。
+- バックエンドから `tmux -L agtx send-keys -t agtx-playground:orchestrator -l "<msg>"` → `Enter`。返答は `tmux -L agtx capture-pane -p -e -t agtx-playground:orchestrator` で読み、WS で配信する。agtx の `/input` と同じやり方で、agtx の更新にも比較的影響されにくい。
 - 弱点: 返答がターミナル画面のテキストなので、構造化されたチャットにはならない。window 名 `orchestrator` に依存する。Claude の入力欄の補完ピッカー対策が必要（agtx 自身も「Enter を繰り返して picker を抜ける」処理を入れている）。agtx が push する通知と入力が衝突しうる。
 
 **案B: コンソールのバックエンドに独自の Orchestrator を持つ（推奨）**
@@ -211,6 +212,62 @@ Console BFF (Node, 127.0.0.1)
 
 ---
 
+## 検証結果（未検証項目の確認, 2026-10-19）
+
+すべて agtx 1.0.6 で確認した。実際のタスクの遷移は起こしていない（存在しない ID だけを使った）。upstream の文書は github.com/fynnfluegge/agtx の main（最終コミット 2026-10-02）の README.md と CLAUDE.md。
+
+### MCP の global mode
+- **`agtx mcp-serve`（引数なし）が global mode**、`agtx mcp-serve <path>` が project-scoped mode。stdio で `initialize` を送ると、`instructions` の先頭が `agtx MCP server (global mode)` になる（serverInfo は `rmcp 1.7.0`）。upstream の README にも同じ記述がある。
+- global mode では `project_id` が必須。省略すると `project_id is required in global mode. Call list_projects first to get project IDs.` が返る。
+- `project_id` には **`list_projects` が返す UUID** を渡す。プロジェクト名（`agtx-playground`）は `Project not found` になる。HTTP（`/api/projects`）も同じ UUID なので、**MCP と HTTP の ID 体系は同じ**。`get_task` の `project_id` フィールドだけがプロジェクト名を返すので、ID として使わないこと。
+- ツールは15個で、どちらのモードでも同じ（`list_projects`, `get_config`, `list_tasks`, `get_task`, `wait_for_board_change`, `create_task`, `create_tasks_batch`, `update_task`, `delete_task`, `move_task`, `get_transition_status`, `check_conflicts`, `get_notifications`, `read_pane_content`, `send_to_task`）。
+- **エラーも `isError: false` で返る。** 「Task not found: …」などのエラーは、本文のテキストでしか判別できない。成功時の本文は JSON 文字列なので、クライアントは「JSON として解釈できなければエラー」と扱う必要がある。
+
+### `wait_for_board_change` の返却形式
+- 本文は `{"tui_connected": bool, "timed_out": bool, "tasks": [...]}`。バイナリ内の文字列から、ほかに `removed`（削除されたタスク）と `transitions`（キューに積んだ `move_task` の結果）が付くことがあると推測できる。
+- **セッションで最初の呼び出しは、ボード全体をすぐに返す**（`timed_out: false`、全タスク）。2回目以降は、前回から変わったタスクだけを返す。変化がなければ `timeout_secs` まで待って `{"timed_out": true, "tasks": []}` を返す（6秒で確認）。
+- 差分は **MCP のセッションごと**に管理される。プロセスを再起動すると、最初の呼び出しはまたボード全体を返す。
+- 起こすのは「呼び出し側の対応が必要な変化」だけ（upstream CLAUDE.md より）。具体的には `ready` / `idle` / `blocked` / `exited`、Done への移動、開始できる Backlog タスク、エスカレーション、タスクの追加・削除、`move_task` の失敗、`tui_connected` の切り替わり。**`working` になっただけでは起こさない。**
+- 呼び出すと `index.db` の `board_watch.beat_at` が更新される（読んでいる人がいる印）。
+
+### `phase_status` は「誰かが見ている」間だけ更新される
+- upstream CLAUDE.md より: TUI が `task_runtime` に `phase_status` を書くのは、`board_watch` の印から10分以内の間だけ。印を付けるのは、Web サーバのボード取得と、MCP の `list_tasks` / `get_task`（30秒に1回まで）。
+- したがって、コンソールのバックエンドは **10分以内の間隔で必ずボードを読み続ける**必要がある（`wait_for_board_change` のループが自然に満たす）。`phase_status` は必ず `phase_age_secs` と一緒に見る。値が大きければ、誰も見ていなかったか TUI が止まっている。
+- `tui_connected` は `tui_heartbeat` が6秒以内に更新されたかで判定している。
+
+### `POST .../tasks/{tid}/action` のレスポンス
+- 内蔵 PWA の JS より、成功時は **`{request_id, tui_connected}`**。`tui_connected: false` は「キューには積んだが、実行する TUI がいない」という意味。
+- 結果は `GET /api/projects/{pid}/requests/{rid}` で確認する。`status` は `pending` / `completed` / `error`（error のときは `error` に理由）。処理済みのリクエストは約1時間後に削除され、その後は 404 になる。内蔵 PWA は、「タスクの status が変わった」か「request が completed / error になった」で完了と判断している。
+- エラーの形（`agtx serve` を 127.0.0.1:18788 で一時起動し、存在しない ID で確認。確認後すぐ停止した）:
+
+| リクエスト | 結果 |
+|---|---|
+| `POST .../tasks/<存在しない ID>/action` | 404 `{"error":"task <id>"}`（action が不正でも、先にタスクの存在を確認するので同じ） |
+| `GET .../requests/<存在しない ID>` | 404 `{"error":"no transition request <id>; it may have completed and been cleaned up"}` |
+| `POST .../tasks/<存在しない ID>/input` | 404 `{"error":"task <id>"}` |
+
+- MCP 側は `move_task` に存在しない ID を渡すと `Task not found: <id>`、`get_transition_status` は `Transition request not found: <id>`（どちらもテキスト）。
+- 書き込みが多すぎると `too many writes in the last minute; slow down` が返る（バイナリ内の文字列。429 に対応すると推測される）。
+
+### tmux は専用サーバ（`-L agtx`）
+- agtx は専用の tmux サーバ `agtx` を使う（`tmux -L agtx list-windows -a` で確認。upstream CLAUDE.md にも記載）。A案で Orchestrator に流し込むときは、**`tmux -L agtx send-keys -t agtx-playground:orchestrator ...`** のように `-L agtx` が必要。本書の tmux コマンドはこれに合わせて直した。
+
+### upstream の API 安定性方針
+- README・CLAUDE.md・CONTRIBUTING.md・リリースノートに、**API（MCP / HTTP）の安定性やバージョニングの方針は書かれていない**。
+- リリースの頻度が高い: v1.0.0（2026-08-26）から v1.0.6（2026-09-16）まで3週間で7回。リリースノートは PR タイトルの一覧で、MCP や HTTP の変更点は明示されない。
+- upstream は `agtx serve` を「MCP server re-exposed over HTTP with a PWA」と説明している。HTTP 側も MCP と同じ機能を出す設計だが、利用者は同じバイナリの PWA だけと想定されている。
+- **Orchestrator は "Experimental"**（README の見出し。`agtx --experimental` で `O` キー）。A案のように既存の Orchestrator に頼る方式は、仕様が変わる可能性が高い。
+- main には未リリースの変更として **rmcp 1.7.0 → 2.1.0**（MCP ライブラリのメジャー更新）が入っている。次のリリースで MCP の振る舞いが変わる可能性があるので、更新時は契約テストで確認する。
+- README（main）には `move_to_done_and_merge` という action が載っている。1.0.6 のバイナリにも文字列はあるが、今回は確かめていない。
+
+### 項目5への反映
+推奨は変わらない（MCP を主、`agtx serve` の HTTP/WS を従、アダプタ層で隔離）。次の3点を加える。
+1. 起動時に `agtx --version` / `GET /api/health` の `version` を確認し、検証済みバージョン以外では警告を出す。
+2. MCP の契約テスト: `initialize` → `tools/list` で15ツールの名前と必須引数を確認する。さらに `list_projects` / `list_tasks` / `wait_for_board_change(timeout_secs:1)` の本文を JSON として検証する。
+3. `update_check` を無効にするか、agtx の更新は契約テストを通してから行う運用にする。
+
+---
+
 ## Open Questions（更新版）
 
 1. **案A か案B か:** 自然言語 Orchestrator を既存 Orchestrator への流し込み（A）で作るか、独自 Orchestrator（B、推奨）で作るか。B の場合、TUI の Orchestrator は止める運用でよいか。
@@ -218,5 +275,5 @@ Console BFF (Node, 127.0.0.1)
 3. **まず内蔵 `agtx serve` UI を試すか:** TUI で `W`、または `agtx serve`。スマホ表示・ペアリングまで既にあるので、内蔵UIで足りない点（主に Orchestrator チャット・通知）だけを自作する、段階的な進め方もある。
 4. **リモートの範囲:** tailnet 限定（推奨）でよいか、インターネットへの公開も必要か。
 5. **TUI 常駐の前提:** tmux 内で agtx TUI を常駐させる運用でよいか。
-6. **残っている未検証の事項:** MCP の global mode の起動方法、`wait_for_board_change` の返却形式、`POST .../action` のレスポンス形状（書き込み系なので今回は実行していない）。
-7. **upstream のドキュメント:** github.com/fynnfluegge/agtx に API の安定性方針があるかは未確認。
+6. ~~残っている未検証の事項~~ → 解消（「検証結果」を参照）。残りは `transitions` / `removed` の実際の形と、`move_to_done_and_merge` の有無。どちらも実際に遷移させないと確かめられないので、コンソール開発の中で確認する。
+7. ~~upstream の安定性方針~~ → 明文化された方針はない（「検証結果」を参照）。
