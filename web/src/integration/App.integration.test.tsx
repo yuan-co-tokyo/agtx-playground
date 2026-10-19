@@ -25,6 +25,50 @@ async function closeServer() {
 }
 afterEach(async () => { cleanup(); await closeServer(); });
 
+it('creates, changes, displays and filters priority through the real API', async () => {
+  const user = userEvent.setup();
+  render(<App api={api} />);
+  expect(await screen.findByText('タスクはまだありません')).toBeVisible();
+  await user.type(screen.getByRole('textbox', { name: /タイトル/ }), 'タスクA');
+  await user.click(screen.getByRole('radio', { name: '高' }));
+  await user.click(screen.getByRole('button', { name: 'タスクを追加' }));
+  expect(await screen.findByRole('heading', { name: 'タスクA' })).toBeVisible();
+  expect(within(screen.getByRole('listitem')).getByText('高')).toHaveTextContent('優先度: 高');
+  expect(screen.getByRole('radio', { name: '中' })).toBeChecked();
+  await user.type(screen.getByRole('textbox', { name: /タイトル/ }), 'タスクB');
+  await user.click(screen.getByRole('button', { name: 'タスクを追加' }));
+  expect(await screen.findByRole('heading', { name: 'タスクB' })).toBeVisible();
+  const item = within(screen.getAllByRole('listitem')[1]!);
+  expect(item.getByText('中')).toHaveTextContent('優先度: 中');
+  const tasks = await api.getTasks();
+  expect(tasks).toMatchObject([
+    { title: 'タスクA', priority: 'high' },
+    { title: 'タスクB', priority: 'medium' },
+  ]);
+  const taskB = tasks[1]!;
+  await user.click(item.getByRole('button', { name: '「タスクB」を編集' }));
+  await user.click(item.getByRole('radio', { name: '低' }));
+  await user.click(item.getByRole('button', { name: '保存' }));
+  await waitFor(() => expect(item.queryByRole('button', { name: '保存' })).not.toBeInTheDocument());
+  expect(item.getByText('低')).toHaveTextContent('優先度: 低');
+  expect(await api.getTask(taskB.id)).toMatchObject({ title: 'タスクB', priority: 'low' });
+
+  const filter = screen.getByRole('combobox', { name: '優先度で絞り込み' });
+  await user.selectOptions(filter, 'high');
+  expect(screen.getAllByRole('listitem')).toHaveLength(1);
+  expect(screen.getByRole('heading', { name: 'タスクA' })).toBeVisible();
+  expect(screen.queryByRole('heading', { name: 'タスクB' })).not.toBeInTheDocument();
+  expect(screen.getByText('1 件（全 2 件）')).toBeVisible();
+  await user.selectOptions(filter, 'medium');
+  expect(screen.getByText('該当するタスクはありません')).toBeVisible();
+  expect(screen.queryByRole('listitem')).not.toBeInTheDocument();
+  await user.selectOptions(filter, 'all');
+  expect(screen.getAllByRole('listitem')).toHaveLength(2);
+  expect(screen.getByRole('heading', { name: 'タスクA' })).toBeVisible();
+  expect(screen.getByRole('heading', { name: 'タスクB' })).toBeVisible();
+  expect(screen.getByText('2 件')).toBeVisible();
+});
+
 it('creates, edits, toggles and deletes through the real API', async () => {
   const user = userEvent.setup();
   render(<App api={api} />);

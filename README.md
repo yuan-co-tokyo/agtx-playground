@@ -85,11 +85,11 @@ npm run dev:web
 
 Vite の開発・プレビューサーバーは `/tasks` を既定で `http://localhost:3000` に転送します。ポート変更時は `PORT=3001 npm run dev` と `PORT=3001 npm run dev:web` を使います。`API_PROXY_TARGET=http://localhost:3001 npm run dev:web` でも転送先を指定でき、`PORT` より優先します。プレビューにも同じ環境変数を利用できます。
 
-`npm run typecheck` で API と画面の型を確認します。`npm test` は Vitest の `api`（サーバー）、`web-api`（クライアント・実サーバー契約・設定・エラーメッセージ）、`web`（jsdom の画面）の 3 プロジェクトを実行します。`web/src/integration/App.integration.test.tsx` は実サーバーと実クライアントを通して画面の CRUD とエラー表示を検証します。
+`npm run typecheck` で API と画面の型を確認します。`npm test` は Vitest の `api`（サーバー）、`web-api`（クライアント・実サーバー契約・設定・エラーメッセージ）、`web`（jsdom の画面）の 3 プロジェクトを実行します。`web/src/integration/App.integration.test.tsx` は実サーバーと実クライアントを通して画面の CRUD、優先度の作成・変更・表示・絞り込み、エラー表示を検証します。
 
 `npm run build` は API を `dist/`、画面を `dist/web/` に出力します。`npm run preview:web` でビルド済み画面を確認できます。本番での静的配信・API へのルーティングは別途設定が必要です。
 
-優先度は初期値から変更した場合のみ送信します。現在のサーバーは優先度の入力に未対応のため、「高」「低」の作成や優先度の変更にはバックエンド対応が必要です。
+優先度は初期値から変更した場合のみ送信します。画面の絞り込みはクライアント側で行い、`?priority=` は使用しません。
 
 ### API クライアント
 
