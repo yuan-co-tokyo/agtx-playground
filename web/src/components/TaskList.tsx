@@ -1,4 +1,4 @@
-import type { Task } from '../api/task-api';
+import type { Task } from '../api/types';
 import { TaskItem, type TaskItemProps } from './TaskItem';
 
 interface Props extends Pick<TaskItemProps, 'onUpdate' | 'onToggle' | 'onRemove'> {

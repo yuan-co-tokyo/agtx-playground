@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react';
-import type { CreateTaskInput, TaskStatus } from '../api/task-api';
+import type { CreateTaskInput, TaskStatus } from '../api/types';
 import { statusLabels } from './StatusBadge';
 
 interface Props {

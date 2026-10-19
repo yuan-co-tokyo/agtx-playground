@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { App } from './App';
 import { deferred, fakeTaskApi, sampleTask } from '../test/fake-task-api';
-import type { Task } from '../api/task-api';
+import type { Task } from '../api/types';
 
 async function ready(api = fakeTaskApi([sampleTask])) {
   const user = userEvent.setup();
