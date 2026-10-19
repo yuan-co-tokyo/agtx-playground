@@ -10,6 +10,7 @@ it('names actions and moves focus into editing and back on cancel/save', async (
     onToggle={vi.fn(async () => true)} onRemove={vi.fn(async () => true)} /></ul>);
   expect(screen.getByRole('checkbox', { name: '「仕様を確認」を完了にする' })).not.toBeChecked();
   expect(screen.getByText('未着手')).toBeVisible();
+  expect(screen.getByText('中')).toHaveTextContent('優先度: 中');
   expect(screen.getByRole('button', { name: '「仕様を確認」を削除' })).toBeEnabled();
   await user.click(screen.getByRole('button', { name: '「仕様を確認」を編集' }));
   expect(screen.getByRole('textbox', { name: /タイトル/ })).toHaveFocus();

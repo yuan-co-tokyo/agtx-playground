@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Task, UpdateTaskInput } from '../api/types';
 import { StatusBadge } from './StatusBadge';
+import { PriorityBadge } from './PriorityBadge';
 import { TaskForm } from './TaskForm';
 
 export interface TaskItemProps {
@@ -34,6 +35,7 @@ export function TaskItem({ task, pending, onUpdate, onToggle, onRemove }: TaskIt
         </label>
         <h3 className={task.status === 'done' ? 'completed' : ''}>{task.title}</h3>
         <StatusBadge status={task.status} />
+        <PriorityBadge priority={task.priority} />
       </div>
       {task.description && <p className="description">{task.description}</p>}
       <div className="task-actions">
