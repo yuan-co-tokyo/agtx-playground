@@ -1,5 +1,6 @@
 import { vi } from 'vitest';
-import type { CreateTaskInput, Task, TaskApi, UpdateTaskInput } from '../api/task-api';
+import type { TaskApi } from '../api/client';
+import type { CreateTaskInput, Task, UpdateTaskInput } from '../api/types';
 
 export const sampleTask: Task = {
   id: 'one', title: '仕様を確認', description: 'APIの仕様を読む', status: 'todo',
@@ -15,6 +16,11 @@ export function fakeTaskApi(initial: Task[] = []) {
   let tasks = [...initial];
   let nextId = 0;
   return {
+    getTask: vi.fn(async (id: string) => {
+      const task = tasks.find(task => task.id === id);
+      if (!task) throw new Error('タスクが見つかりません');
+      return task;
+    }),
     getTasks: vi.fn(async () => [...tasks]),
     createTask: vi.fn(async (input: CreateTaskInput) => {
       const task: Task = { ...sampleTask, description: '', status: 'todo', ...input, id: `new-${nextId++}` };

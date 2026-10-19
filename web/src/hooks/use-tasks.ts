@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { CreateTaskInput, Task, TaskApi, UpdateTaskInput } from '../api/task-api';
-
-const message = (error: unknown) => error instanceof Error ? error.message : '操作に失敗しました';
+import type { TaskApi } from '../api/client';
+import type { CreateTaskInput, Task, UpdateTaskInput } from '../api/types';
+import { toErrorMessage } from '../api/error-message';
 
 export function useTasks(api: TaskApi) {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -29,7 +29,7 @@ export function useTasks(api: TaskApi) {
         const result = await api.getTasks();
         if (generation.current === current) { setTasks(result); setStatus('ready'); }
       } catch (error) {
-        if (generation.current === current) { setLoadError(message(error)); setStatus('error'); }
+        if (generation.current === current) { setLoadError(toErrorMessage(error)); setStatus('error'); }
       }
     })();
     return () => { generation.current++; };
@@ -47,7 +47,7 @@ export function useTasks(api: TaskApi) {
       setTasks(previous => [...previous, task]);
       return true;
     } catch (error) {
-      if (generation.current === current) setActionError(message(error));
+      if (generation.current === current) setActionError(toErrorMessage(error));
       return false;
     } finally {
       if (generation.current === current) { createLock.current = false; setCreating(false); }
@@ -68,7 +68,7 @@ export function useTasks(api: TaskApi) {
         : previous.filter(task => task.id !== id));
       return true;
     } catch (error) {
-      if (generation.current === current) setActionError(message(error));
+      if (generation.current === current) setActionError(toErrorMessage(error));
       return false;
     } finally {
       if (generation.current === current) {

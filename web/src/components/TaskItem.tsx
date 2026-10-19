@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { Task, UpdateTaskInput } from '../api/task-api';
+import type { Task, UpdateTaskInput } from '../api/types';
 import { StatusBadge } from './StatusBadge';
 import { TaskForm } from './TaskForm';
 

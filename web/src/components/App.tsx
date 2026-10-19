@@ -1,4 +1,4 @@
-import type { TaskApi } from '../api/task-api';
+import type { TaskApi } from '../api/client';
 import { useTasks } from '../hooks/use-tasks';
 import { ErrorMessage } from './ErrorMessage';
 import { LoadingIndicator } from './LoadingIndicator';

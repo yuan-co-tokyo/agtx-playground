@@ -4,6 +4,7 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
   test: {
     projects: [
+      { test: { name: 'web-api', environment: 'node', include: ['web/tests/**/*.test.ts'] } },
       { test: { name: 'api', environment: 'node', include: ['tests/**/*.test.ts'] } },
       {
         plugins: [react()],

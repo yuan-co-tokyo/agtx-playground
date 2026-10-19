@@ -67,7 +67,26 @@ curl -i -X DELETE http://localhost:3000/tasks/<id>
 
 `tests/` にはリポジトリ・サービスの単体テストと supertest による API 統合テストがあります。
 
-## フロントエンド用APIクライアント
+## フロントエンド
+
+React + TypeScript の画面は `web/` にあります。別々のターミナルで起動します。
+
+```sh
+npm run dev
+npm run dev:web
+```
+
+画面は `web/src/api/index.ts` の `taskApi` を使い、一覧・追加・編集・完了切り替え・削除に対応しています。`components/` が画面、`hooks/use-tasks.ts` が状態管理を担当します。型は `api/types.ts`、共通の `TaskApi` インターフェースは `api/client.ts` にあります。
+
+`api/error-message.ts` が通信・入力検証・未検出・サーバー・不正レスポンスのエラーを日本語に変換します。読み込み失敗時には再試行できます。API 停止時にプロキシが 500 を返す場合はサーバーエラーとして表示します。
+
+Vite の開発・プレビューサーバーは `/tasks` を既定で `http://localhost:3000` に転送します。ポート変更時は `PORT=3001 npm run dev` と `PORT=3001 npm run dev:web` を使います。`API_PROXY_TARGET=http://localhost:3001 npm run dev:web` でも転送先を指定でき、`PORT` より優先します。プレビューにも同じ環境変数を利用できます。
+
+`npm run typecheck` で API と画面の型を確認します。`npm test` は Vitest の `api`（サーバー）、`web-api`（クライアント・実サーバー契約・設定・エラーメッセージ）、`web`（jsdom の画面）の 3 プロジェクトを実行します。`web/src/integration/App.integration.test.tsx` は実サーバーと実クライアントを通して画面の CRUD とエラー表示を検証します。
+
+`npm run build` は API を `dist/`、画面を `dist/web/` に出力します。`npm run preview:web` でビルド済み画面を確認できます。本番での静的配信・API へのルーティングは別途設定が必要です。
+
+### API クライアント
 
 `web/src/api/` は React に依存しない fetch ベースの TypeScript クライアントです。タスクの必須フィールドとステータスを実行時に検証し、追加フィールドは許容します。
 
@@ -92,7 +111,7 @@ try {
 
 `getTasks` / `getTask` / `createTask` / `updateTask` / `deleteTask` は個別にも import できます。`createTaskApiClient({ baseUrl, fetch })` で接続先や fetch を差し替えられます。作成・更新は title / description / status の定義済みの値だけを送ります。空の更新は通信せず `RangeError` で reject します。
 
-`web/.env.example` を参考に、Vite の `VITE_API_BASE_URL` を設定してください。未設定・空文字なら同一オリジンです。現状のサーバーは CORS に対応していないため、開発時は Vite 設定の `server.proxy` で `/tasks` を `http://localhost:3000` へ転送してください。Vite 設定と UI は別タスクで導入します。別オリジンの URL を直接指定する場合は、API 側の CORS 対応が必要です。
+`web/.env.example` を参考に、Vite の `VITE_API_BASE_URL` を設定してください。未設定・空文字なら同一オリジンです。サーバーは CORS に対応していないため、開発時は設定済みの Vite プロキシを利用します。別オリジンの URL を直接指定する場合は、API 側の CORS 対応が必要です。
 
 | エラー | 用途 |
 | --- | --- |
@@ -102,19 +121,3 @@ try {
 | `InvalidResponseError` | 成功レスポンスの JSON またはタスク形式が不正 |
 
 `signal` による中断（`AbortError`・`TimeoutError`・`abort(reason)` の理由）はラップせずそのまま伝播します。`AbortError` / `TimeoutError` は `isAbortError(error)` で判定できます。組み込みタイムアウトはなく、必要なら各メソッドに `{ signal: AbortSignal.timeout(5000) }` を渡してください。
-## フロントエンド
-
-React + TypeScript の画面は `web/` にあります。開発時は別々のターミナルで起動します。
-
-```sh
-npm run dev
-npm run dev:web
-```
-
-Vite の開発サーバーは `/tasks` を `http://localhost:3000` に転送します。API のポートを変更した場合は `web/vite.config.ts` の転送先も変更してください。
-
-画面は一覧・追加・編集・完了切り替え・削除、読み込み表示、エラー表示と再試行に対応しています。`web/src/components/` に画面、`hooks/use-tasks.ts` に状態管理、`api/task-api.ts` に UI が利用する `TaskApi` インターフェースを配置しています。
-
-**API クライアントは別タスクで実装するため、現時点のエントリは仮実装です。** 起動すると「APIクライアントが未接続です」と表示されます。統合時に `web/src/main.tsx` の `placeholder-task-api` の import を、`TaskApi` を満たす実クライアントの `taskApi` に差し替えてください。各メソッドは表示可能な `message` を持つ `Error` で失敗を通知します。画面テストはメモリ上の fake を使うためクライアントに依存しません。
-
-`npm run typecheck` で API と画面の型を確認し、`npm test` で両方のテストを実行します。`npm run build` は API を `dist/`、画面を `dist/web/` に出力します。`npm run preview:web` はビルド済み画面の確認用です。本番での静的配信・API へのルーティングは別途設定が必要です。
