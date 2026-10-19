@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { InMemoryTaskRepository } from '../src/repositories/in-memory-task.repository.js';
 import type { Task } from '../src/types/task.js';
 
-const task = (id: string): Task => ({ id, title: id, description: '', status: 'todo', createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z' });
+const task = (id: string): Task => ({ id, title: id, description: '', status: 'todo', priority: 'medium', createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z' });
 
 describe('InMemoryTaskRepository', () => {
   it('preserves creation order across updates and deletes existing tasks only', () => {

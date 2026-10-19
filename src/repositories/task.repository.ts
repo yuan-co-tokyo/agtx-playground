@@ -1,9 +1,9 @@
-import type { Task } from '../types/task.js';
+import type { StoredTask } from '../types/task.js';
 
 export interface TaskRepository {
-  findAll(): Task[];
-  findById(id: string): Task | undefined;
-  create(task: Task): Task;
-  update(task: Task): Task | undefined;
+  findAll(): StoredTask[];
+  findById(id: string): StoredTask | undefined;
+  create(task: StoredTask): StoredTask;
+  update(task: StoredTask): StoredTask | undefined;
   delete(id: string): boolean;
 }
