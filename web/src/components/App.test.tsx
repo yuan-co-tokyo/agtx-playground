@@ -45,6 +45,7 @@ describe('App', () => {
     await user.click(screen.getByRole('button', { name: 'タスクを追加' }));
     expect(await screen.findByRole('heading', { name: '新しいタスク', level: 3 })).toBeVisible();
     expect(title).toHaveValue('');
+    expect(title).toHaveFocus();
     expect(api.createTask).toHaveBeenCalledWith({ title: '新しいタスク', description: '', status: 'todo' });
   });
   it('edits, cancels, toggles and deletes a task', async () => {
@@ -96,6 +97,7 @@ describe('App', () => {
     await user.click(screen.getByRole('button', { name: 'タスクを追加' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('追加できません');
     expect(screen.getByRole('textbox', { name: /タイトル/ })).toHaveValue('下書き');
+    expect(screen.getByRole('textbox', { name: /タイトル/ })).toHaveFocus();
     api.updateTask.mockRejectedValueOnce(new Error('保存できません'));
     await user.click(screen.getByRole('button', { name: '「仕様を確認」を編集' }));
     const item = within(screen.getByRole('listitem'));
@@ -103,6 +105,7 @@ describe('App', () => {
     await user.click(item.getByRole('button', { name: '保存' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('保存できません');
     expect(item.getByRole('textbox', { name: /タイトル/ })).toHaveValue('仕様を確認変更');
+    expect(item.getByRole('textbox', { name: /タイトル/ })).toHaveFocus();
     expect(item.getByRole('button', { name: '保存' })).toBeEnabled();
   });
   it('disables creation while pending and uses the server response', async () => {

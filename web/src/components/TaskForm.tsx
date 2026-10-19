@@ -16,7 +16,12 @@ export function TaskForm({ initialValues, submitLabel, onSubmit, onCancel, submi
   const [description, setDescription] = useState(initialValues?.description ?? '');
   const [status, setStatus] = useState<TaskStatus>(initialValues?.status ?? 'todo');
   const [error, setError] = useState('');
+  const submitted = useRef(false);
   useEffect(() => { if (initialValues) titleRef.current?.focus(); }, [initialValues]);
+  // The disabled fieldset drops focus while submitting; return it to the form afterwards.
+  useEffect(() => {
+    if (!submitting && submitted.current) { submitted.current = false; titleRef.current?.focus(); }
+  }, [submitting]);
 
   return <form onSubmit={async event => {
     event.preventDefault();
@@ -27,6 +32,7 @@ export function TaskForm({ initialValues, submitLabel, onSubmit, onCancel, submi
       return;
     }
     setError('');
+    submitted.current = true;
     if (await onSubmit({ title: title.trim(), description, status })) {
       if (!initialValues) { setTitle(''); setDescription(''); setStatus('todo'); }
     }
