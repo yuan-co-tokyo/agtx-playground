@@ -1,6 +1,6 @@
 # Research: agtx 外部連携仕様の調査（Webコンソール構想に向けて）
 
-対象: agtx 1.0.6（`/Users/takahiro/.local/bin/agtx`, Rust 製 Mach-O, upstream: github.com/fynnfluegge/agtx）
+対象: agtx 1.0.6（`~/.local/bin/agtx`, Rust 製 Mach-O, upstream: github.com/fynnfluegge/agtx）
 調査方法: バイナリ埋め込み文字列（ヘルプ・MCPツール定義・内蔵Web UIのJS）、SQLite スキーマ（read-only）、設定ファイル、tmux 構成、`.claude` 設定の確認。
 当初は read-only で調べ、後から副作用のない範囲で実際に呼び出して確かめた（「追加調査」「検証結果」の節）。
 
@@ -26,7 +26,7 @@
 ### agtx 本体・データ（このリポジトリの外）
 | パス | 役割 |
 |------|------|
-| `~/.local/bin/agtx` | 本体バイナリ。サブコマンド: (TUI), `serve`, `mcp-serve <path>`, `hook --env <agent>`, `update` |
+| `~/.local/bin/agtx` | 本体バイナリ。サブコマンド: (TUI), `serve`, `mcp-serve [path]`（引数なしで global mode）, `hook --env <agent>`, `update` |
 | `~/.config/agtx/config.toml` | グローバル設定（default_agent, フェーズごとのエージェント, worktree, theme, `update_check`） |
 | `~/.config/agtx/update.json` | 更新チェックのキャッシュ（latest_tag v1.0.6） |
 | `~/.config/agtx/logs/agtx.log.YYYY-MM-DD` | ログ |
@@ -93,7 +93,7 @@
 | `read_pane_content(task_id, lines=50)` / `send_to_task(task_id, message≤4096B)` | ペインの読み取り・入力（入力は Planning/Running/Review） |
 | `get_notifications`, `wait_for_board_change(timeout_secs≤900)` | イベント（項目4で説明） |
 
-「global mode」もある（`project_id` が必須になり、先に `list_projects` を呼ぶ）。起動方法はまだ確認していない（Open Questions 参照）。
+「global mode」もある（`project_id` が必須になり、先に `list_projects` を呼ぶ）。引数なしの `agtx mcp-serve` で起動する（「検証結果」参照）。
 
 ### 1. タスク操作 — 手段B: HTTP（`agtx serve [path] [--host] [--port 8787] [--tunnel private|public]`）
 内蔵 PWA の `api.js` から抽出:
