@@ -61,7 +61,7 @@ input[type=checkbox] { width: 20px; height: 20px; min-height: 20px; accent-color
 .priority-option { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; min-width: 44px; cursor: pointer; }
 input[type=radio] { width: 20px; height: 20px; min-height: 20px; accent-color: var(--accent); }
 .priority-high { background: #ffe0df; color: #8b2525; }
-.priority-medium { background: #fff0c7; color: #715000; }
+.priority-medium { background: #ece6ff; color: #4a3a80; }
 .priority-low { background: #deecff; color: #254c80; }
 .list-toolbar { display: flex; align-items: baseline; flex-wrap: wrap; gap: 12px; }
 .list-toolbar select { width: auto; }
